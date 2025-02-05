@@ -1,0 +1,40 @@
+name: Retrain Model on Git Push
+
+on:
+  push:
+    branches:
+      - main  # Trigger the workflow on push to main branch
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest  # Using the latest Ubuntu runner
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.8"  # Specify the Python version you're using
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Retrain Model
+        run: python src/train.py  # Ensure this script trains & saves the model
+
+      - name: Commit Retrained Model (if model changes)
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+          # Check if there were any changes to model.pkl
+          if git diff --quiet src/model.pkl; then
+            echo "No changes to model, skipping commit."
+          else
+            git add src/model.pkl
+            git commit -m "Updated retrained model"
+            git push
+          fi
